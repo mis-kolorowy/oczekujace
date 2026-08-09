@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strony oczekujące na przejrzenie</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 15px; background-color: #f8f9fa; color: #202122; }
+    h1 { font-size: 20px; }
+    
+    .filter-panel {
+      background: #ffffff; border: 1px solid #a2a9b1; border-radius: 4px;
+      padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 16px;
+    }
+    
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-group label.group-title { font-size: 11px; font-weight: bold; color: #54595d; text-transform: uppercase; }
+    
+    .radio-group-inline { display: flex; gap: 12px; flex-wrap: wrap; }
+    .radio-label, .checkbox-label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+
+    .languages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 6px 12px;
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid #eaecf0;
+      padding: 8px;
+      border-radius: 3px;
+      background: #fafafa;
+    }
+
+    .counter { margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+    .pagination { margin: 15px 0; display: flex; gap: 10px; align-items: center; }
+    button { padding: 6px 12px; border: 1px solid #a2a9b1; background: #fff; border-radius: 3px; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #a2a9b1; min-width: 600px; }
+    th, td { border: 1px solid #a2a9b1; padding: 8px 10px; text-align: left; font-size: 13px; }
+    th { background-color: #eaecf0; font-weight: bold; }
+    tr:nth-child(even) { background-color: #f8f9fa; }
+    tr:hover { background-color: #eaf3ff; }
+
+    a { color: #36c; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .tag-badge { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; }
+    #loading { font-size: 16px; color: #0066cc; font-weight: bold; margin: 20px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Strony oczekujące na przejrzenie</h1>
+
+  <div class="filter-panel">
+
+    <div class="filter-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="translationEditorFilter">
+        <strong>Tylko edytor tłumaczeń</strong>
+      </label>
+    </div>
+
+    <div class="filter-group">
+      <label class="group-title">Liczba edycji</label>
+      <div class="radio-group-inline">
+        <label class="radio-label">
+          <input type="radio" name="editCountFilter" value="all" checked> Wszystkie
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="editCountFilter" value="1"> Dokładnie 1 edycja
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="editCountFilter" value="2+"> 2 lub więcej edycji
+        </label>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="group-title">Tryb języka</label>
+      <div class="radio-group-inline" style="margin-bottom: 6px;">
+        <label class="radio-label">
+          <input type="radio" name="langMode" value="any" checked> Między innymi język
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="langMode" value="only"> Tylko język
+        </label>
+      </div>
+
+      <label class="group-title">Wybierz język</label>
+      <div class="languages-grid" id="languagesContainer">
+
+      </div>
+    </div>
+  </div>
+
+  <div id="loading">Wczytywanie bazy danych...</div>
+
+  <div class="counter">
+    Znaleziono: <span id="visibleCount">0</span> / <span id="totalCount">0</span>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Hasło</th>
+          <th>Najstarsza edycja</th>
+          <th>Edycje</th>
+          <th>Autor(zy)</th>
+          <th>Zmienione wiersze</th>
+          <th>Edytor tłum.</th>
+          <th>Kategorie</th>
+          <th>Linkujące</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <button id="prevBtn">← Poprzednia</button>
+    <span>Strona <span id="currentPage">1</span> z <span id="totalPages">1</span></span>
+    <button id="nextBtn">Następna →</button>
+  </div>
+
+  <script>
+    let rawData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const PAGE_SIZE = 100;
+
+    async function init() {
+      try {
+        const res = await fetch('dane.json');
+        rawData = await res.json();
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('totalCount').textContent = rawData.length;
+
+        populateLanguages();
+        attachEventListeners();
+        applyFilters();
+      } catch (e) {
+        document.getElementById('loading').textContent = 'Błąd wczytywania danych JSON.';
+      }
+    }
+
+    function populateLanguages() {
+      const container = document.getElementById('languagesContainer');
+      const langs = new Set();
+      rawData.forEach(item => item.cats.forEach(c => langs.add(c)));
+
+      let html = `
+        <label class="radio-label">
+          <input type="radio" name="langSelect" value="" checked>
+          <em>-- Wszystkie --</em>
+        </label>
+      `;
+
+      Array.from(langs).sort((a,b) => a.localeCompare(b, 'pl')).forEach(lang => {
+        html += `
+          <label class="radio-label">
+            <input type="radio" name="langSelect" value="${escapeHtml(lang.toLowerCase())}">
+            ${escapeHtml(lang)}
+          </label>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function attachEventListeners() {
+      document.getElementById('translationEditorFilter').addEventListener('change', applyFilters);
+
+      document.querySelectorAll('input[name="editCountFilter"]').forEach(el => {
+        el.addEventListener('change', applyFilters);
+      });
+
+      document.querySelectorAll('input[name="langMode"]').forEach(el => {
+        el.addEventListener('change', applyFilters);
+      });
+
+      document.getElementById('languagesContainer').addEventListener('change', applyFilters);
+    }
+
+    function applyFilters() {
+      const selectedLangEl = document.querySelector('input[name="langSelect"]:checked');
+      const selectedLang = selectedLangEl ? selectedLangEl.value.toLowerCase() : '';
+      
+      const langMode = document.querySelector('input[name="langMode"]:checked').value;
+      const editFilter = document.querySelector('input[name="editCountFilter"]:checked').value;
+      const onlyTrans = document.getElementById('translationEditorFilter').checked;
+
+      filteredData = rawData.filter(item => {
+        const catsLower = item.cats.map(c => c.toLowerCase());
+        
+        if (selectedLang) {
+          if (langMode === 'only') {
+            if (catsLower.length !== 1 || catsLower[0] !== selectedLang) return false;
+          } else {
+            if (!catsLower.includes(selectedLang)) return false;
+          }
+        }
+
+        if (editFilter === '1' && item.edits !== 1) return false;
+        if (editFilter === '2+' && item.edits < 2) return false;
+        if (onlyTrans && !item.is_trans) return false;
+
+        return true;
+      });
+
+      currentPage = 1;
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      const totalPages = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageItems = filteredData.slice(start, start + PAGE_SIZE);
+
+      pageItems.forEach(item => {
+        const tr = document.createElement('tr');
+        const titleEnc = encodeURIComponent(item.title);
+        const usersStr = item.users.join(', ');
+        const transBadge = item.is_trans ? '<span class="tag-badge">tak</span>' : 'nie';
+
+        tr.innerHTML = `
+          <td><a href="https://pl.wiktionary.org/wiki/${titleEnc}" target="_blank">${escapeHtml(item.title)}</a> 
+              (<a href="https://pl.wiktionary.org/w/index.php?title=${titleEnc}&action=history" target="_blank">hist.</a>)</td>
+          <td>${item.oldest}</td>
+          <td>${item.edits}</td>
+          <td>${escapeHtml(usersStr)}</td>
+          <td>${item.diff}</td>
+          <td>${transBadge}</td>
+          <td>(${item.cats.length}) ${escapeHtml(item.cats.join(', '))}</td>
+          <td>${item.links}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('visibleCount').textContent = filteredData.length;
+      document.getElementById('currentPage').textContent = currentPage;
+      document.getElementById('totalPages').textContent = totalPages;
+      document.getElementById('prevBtn').disabled = currentPage === 1;
+      document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
+    document.getElementById('nextBtn').addEventListener('click', () => { if (currentPage * PAGE_SIZE < filteredData.length) { currentPage++; renderTable(); } });
+
+    init();
+  </script>
+</body>
+</html>
