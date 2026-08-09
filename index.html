@@ -117,16 +117,6 @@
       margin-bottom: 2px;
     }
 
-    .btn-small {
-      font-size: 11px;
-      padding: 2px 6px;
-      background: var(--btn-bg);
-      color: var(--text-color);
-      border: 1px solid var(--border-color);
-      border-radius: 3px;
-      cursor: pointer;
-    }
-
     .search-sub-input {
       padding: 4px 8px;
       border: 1px solid var(--border-color);
@@ -137,6 +127,11 @@
       margin-bottom: 4px;
       width: 100%;
       box-sizing: border-box;
+    }
+
+    .disabled-option {
+      opacity: 0.5;
+      pointer-events: none;
     }
 
     .counter { margin-bottom: 10px; font-size: 14px; font-weight: bold; }
@@ -173,7 +168,6 @@
   </div>
 
   <div class="filter-panel">
-
     <div class="filter-group">
       <label class="checkbox-label">
         <input type="checkbox" id="translationEditorFilter">
@@ -191,10 +185,7 @@
     </div>
 
     <div class="filter-group">
-      <div class="grid-header">
-        <label class="group-title">Język(i)</label>
-        <button class="btn-small" id="toggleAllLangsBtn">Oznaczenie/Odznacz wszystkie</button>
-      </div>
+      <label class="group-title">Język(i)</label>
       <div class="radio-group-inline" style="margin-bottom: 4px;">
         <label class="radio-label"><input type="radio" name="langMode" value="any" checked> Między innymi dany język</label>
         <label class="radio-label"><input type="radio" name="langMode" value="only"> Tylko wybrane języki</label>
@@ -203,10 +194,7 @@
     </div>
 
     <div class="filter-group">
-      <div class="grid-header">
-        <label class="group-title">Autor(zy) edycji</label>
-        <button class="btn-small" id="toggleAllUsersBtn">Oznaczenie/Odznacz wszystkich</button>
-      </div>
+      <label class="group-title">Autor(zy) edycji</label>
       <div class="radio-group-inline" style="margin-bottom: 4px;">
         <label class="radio-label"><input type="radio" name="userMode" value="any" checked> Między innymi autor</label>
         <label class="radio-label"><input type="radio" name="userMode" value="only"> Tylko wybrani autorzy</label>
@@ -288,7 +276,6 @@
     }
 
     function isIpAddress(user) {
-
       return /^(\d{1,3}\.){3}\d{1,3}$/.test(user) || /^[0-9a-fA-F:]+$/.test(user);
     }
 
@@ -301,11 +288,17 @@
       const langs = new Set();
       rawData.forEach(item => item.cats.forEach(c => langs.add(c)));
       
-      let html = '';
+      let html = `
+        <label class="checkbox-label" style="font-weight: bold; grid-column: 1 / -1; border-bottom: 1px solid var(--border-light); padding-bottom: 4px; margin-bottom: 2px;">
+          <input type="checkbox" id="langAllCheckbox" checked>
+          [Wszystkie języki]
+        </label>
+      `;
+
       Array.from(langs).sort((a,b) => a.localeCompare(b, 'pl')).forEach(lang => {
         html += `
-          <label class="checkbox-label lang-item">
-            <input type="checkbox" name="langFilter" value="${escapeHtml(lang.toLowerCase())}" checked>
+          <label class="checkbox-label lang-item disabled-option">
+            <input type="checkbox" name="langFilter" value="${escapeHtml(lang.toLowerCase())}" disabled>
             ${escapeHtml(lang)}
           </label>
         `;
@@ -326,21 +319,25 @@
       });
 
       let html = `
-        <label class="checkbox-label user-item" style="font-weight: bold; grid-column: 1 / -1;">
-          <input type="checkbox" id="userCatIp" value="SPECIAL_IP" checked>
+        <label class="checkbox-label" style="font-weight: bold; grid-column: 1 / -1; border-bottom: 1px solid var(--border-light); padding-bottom: 4px; margin-bottom: 2px;">
+          <input type="checkbox" id="userAllCheckbox" checked>
+          [Wszyscy autorzy]
+        </label>
+        <label class="checkbox-label user-item disabled-option" style="font-weight: bold; grid-column: 1 / -1;">
+          <input type="checkbox" id="userCatIp" value="SPECIAL_IP" disabled>
           [Adresy IP]
         </label>
-        <label class="checkbox-label user-item" style="font-weight: bold; grid-column: 1 / -1;">
-          <input type="checkbox" id="userCatTemp" value="SPECIAL_TEMP" checked>
+        <label class="checkbox-label user-item disabled-option" style="font-weight: bold; grid-column: 1 / -1;">
+          <input type="checkbox" id="userCatTemp" value="SPECIAL_TEMP" disabled>
           [Konta tymczasowe (~)]
         </label>
-        <hr style="grid-column: 1 / -1; width: 100%; border: 0; border-top: 1px solid var(--border-light); margin: 4px 0;">
+        <hr style="grid-column: 1 / -1; width: 100%; border: 0; border-top: 1px solid var(--border-light); margin: 2px 0;">
       `;
 
       Array.from(regularUsers).sort((a,b) => a.localeCompare(b, 'pl')).forEach(user => {
         html += `
-          <label class="checkbox-label user-item" data-username="${escapeHtml(user.toLowerCase())}">
-            <input type="checkbox" name="userFilter" value="${escapeHtml(user.toLowerCase())}" checked>
+          <label class="checkbox-label user-item disabled-option" data-username="${escapeHtml(user.toLowerCase())}">
+            <input type="checkbox" name="userFilter" value="${escapeHtml(user.toLowerCase())}" disabled>
             ${escapeHtml(user)}
           </label>
         `;
@@ -364,22 +361,29 @@
         el.addEventListener('change', applyFilters);
       });
 
+      document.getElementById('langAllCheckbox').addEventListener('change', (e) => {
+        const isAll = e.target.checked;
+        document.querySelectorAll('input[name="langFilter"]').forEach(cb => {
+          cb.disabled = isAll;
+          if (isAll) cb.checked = false;
+          cb.closest('label').classList.toggle('disabled-option', isAll);
+        });
+        applyFilters();
+      });
+
+      document.getElementById('userAllCheckbox').addEventListener('change', (e) => {
+        const isAll = e.target.checked;
+        const userInputs = document.querySelectorAll('#usersContainer input:not(#userAllCheckbox)');
+        userInputs.forEach(cb => {
+          cb.disabled = isAll;
+          if (isAll) cb.checked = false;
+          cb.closest('label').classList.toggle('disabled-option', isAll);
+        });
+        applyFilters();
+      });
+
       document.getElementById('languagesContainer').addEventListener('change', applyFilters);
       document.getElementById('usersContainer').addEventListener('change', applyFilters);
-
-      document.getElementById('toggleAllLangsBtn').addEventListener('click', () => {
-        const checkboxes = document.querySelectorAll('input[name="langFilter"]');
-        const anyUnchecked = Array.from(checkboxes).some(cb => !cb.checked);
-        checkboxes.forEach(cb => cb.checked = anyUnchecked);
-        applyFilters();
-      });
-
-      document.getElementById('toggleAllUsersBtn').addEventListener('click', () => {
-        const checkboxes = document.querySelectorAll('#usersContainer input[type="checkbox"]');
-        const anyUnchecked = Array.from(checkboxes).some(cb => !cb.checked);
-        checkboxes.forEach(cb => cb.checked = anyUnchecked);
-        applyFilters();
-      });
 
       document.getElementById('userSearchInput').addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
@@ -391,9 +395,11 @@
     }
 
     function applyFilters() {
+      const allLangs = document.getElementById('langAllCheckbox').checked;
       const selectedLangs = Array.from(document.querySelectorAll('input[name="langFilter"]:checked')).map(cb => cb.value);
       const langMode = document.querySelector('input[name="langMode"]:checked').value;
 
+      const allUsers = document.getElementById('userAllCheckbox').checked;
       const includeIp = document.getElementById('userCatIp')?.checked || false;
       const includeTemp = document.getElementById('userCatTemp')?.checked || false;
       const selectedUsers = Array.from(document.querySelectorAll('input[name="userFilter"]:checked')).map(cb => cb.value);
@@ -403,27 +409,28 @@
       const onlyTrans = document.getElementById('translationEditorFilter').checked;
 
       filteredData = rawData.filter(item => {
-
-        const catsLower = item.cats.map(c => c.toLowerCase());
-        if (langMode === 'only') {
-
-          if (catsLower.length === 0 || !catsLower.every(c => selectedLangs.includes(c))) return false;
-        } else {
-
-          if (!catsLower.some(c => selectedLangs.includes(c))) return false;
+        if (!allLangs) {
+          const catsLower = item.cats.map(c => c.toLowerCase());
+          if (langMode === 'only') {
+            if (catsLower.length === 0 || !catsLower.every(c => selectedLangs.includes(c))) return false;
+          } else {
+            if (!catsLower.some(c => selectedLangs.includes(c))) return false;
+          }
         }
 
-        const itemUsersLower = item.users.map(u => u.toLowerCase());
-        const userMatches = (userStr) => {
-          if (includeIp && isIpAddress(userStr)) return true;
-          if (includeTemp && isTempAccount(userStr)) return true;
-          return selectedUsers.includes(userStr);
-        };
+        if (!allUsers) {
+          const itemUsersLower = item.users.map(u => u.toLowerCase());
+          const userMatches = (userStr) => {
+            if (includeIp && isIpAddress(userStr)) return true;
+            if (includeTemp && isTempAccount(userStr)) return true;
+            return selectedUsers.includes(userStr);
+          };
 
-        if (userMode === 'only') {
-          if (itemUsersLower.length === 0 || !itemUsersLower.every(u => userMatches(u))) return false;
-        } else {
-          if (!itemUsersLower.some(u => userMatches(u))) return false;
+          if (userMode === 'only') {
+            if (itemUsersLower.length === 0 || !itemUsersLower.every(u => userMatches(u))) return false;
+          } else {
+            if (!itemUsersLower.some(u => userMatches(u))) return false;
+          }
         }
 
         if (editFilter === '1' && item.edits !== 1) return false;
