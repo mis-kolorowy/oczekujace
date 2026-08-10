@@ -88,18 +88,19 @@
 		.radio-label, .checkbox-label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 
 		.selection-grid {
-			display: grid;
-			grid-auto-flow: column;
-			grid-template-rows: repeat(auto-fill, minmax(22px, max-content));
-			grid-auto-columns: minmax(160px, 1fr);
-			gap: 4px 16px;
-			max-height: 220px;
-			overflow-x: auto;
-			overflow-y: hidden;
+			column-width: 170px;
+			column-gap: 16px;
+			max-height: 200px;
+			overflow-y: auto;
 			border: 1px solid var(--grid-border);
 			padding: 8px;
 			border-radius: 3px;
 			background: var(--grid-bg);
+		}
+
+		.selection-grid .radio-label {
+			break-inside: avoid;
+			margin-bottom: 6px;
 		}
 
 		.counter { margin-bottom: 10px; font-size: 14px; font-weight: bold; }
