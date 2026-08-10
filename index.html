@@ -89,10 +89,13 @@
 
 		.selection-grid {
 			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-			gap: 6px 12px;
-			max-height: 200px;
-			overflow-y: auto;
+			grid-auto-flow: column;
+			grid-template-rows: repeat(auto-fill, minmax(22px, max-content));
+			grid-auto-columns: minmax(160px, 1fr);
+			gap: 4px 16px;
+			max-height: 220px;
+			overflow-x: auto;
+			overflow-y: hidden;
 			border: 1px solid var(--grid-border);
 			padding: 8px;
 			border-radius: 3px;
@@ -287,21 +290,22 @@
 			});
 		}
 
-    function isIpOrTempAccount(username) {
-    	if (!username) return false;
-
-    	if (username.startsWith('~')) return true;
-
-    	const ipv4Pattern = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-    	const ipv6Pattern = /^(?:[0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}$/;
-
-    	return ipv4Pattern.test(username) || ipv6Pattern.test(username);
-    }
+		function isIpOrTempAccount(username) {
+			if (!username) return false;
+			if (username.startsWith('~')) return true;
+			const ipv4Pattern = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+			const ipv6Pattern = /^(?:[0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}$/;
+			return ipv4Pattern.test(username) || ipv6Pattern.test(username);
+		}
 
 		function populateLanguages() {
 			const container = document.getElementById('languagesContainer');
 			const langs = new Set();
-			rawData.forEach(item => item.cats.forEach(c => langs.add(c)));
+			rawData.forEach(item => {
+				if (Array.isArray(item.cats)) {
+					item.cats.forEach(c => langs.add(c));
+				}
+			});
 
 			let html = `
 				<label class="radio-label">
@@ -328,13 +332,15 @@
 			let hasIpOrTemp = false;
 
 			rawData.forEach(item => {
-				item.users.forEach(u => {
-					if (isIpOrTempAccount(u)) {
-						hasIpOrTemp = true;
-					} else {
-						namedUsers.add(u);
-					}
-				});
+				if (Array.isArray(item.users)) {
+					item.users.forEach(u => {
+						if (isIpOrTempAccount(u)) {
+							hasIpOrTemp = true;
+						} else {
+							namedUsers.add(u);
+						}
+					});
+				}
 			});
 
 			let html = `
@@ -366,22 +372,11 @@
 		}
 
 		function attachEventListeners() {
-			document.getElementById('translationEditorFilter').addEventListener('change', applyFilters);
-
-			document.querySelectorAll('input[name="editCountFilter"]').forEach(el => {
-				el.addEventListener('change', applyFilters);
+			document.querySelector('.filter-panel').addEventListener('change', (e) => {
+				if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+					applyFilters();
+				}
 			});
-
-			document.querySelectorAll('input[name="langMode"]').forEach(el => {
-				el.addEventListener('change', applyFilters);
-			});
-
-			document.querySelectorAll('input[name="userMode"]').forEach(el => {
-				el.addEventListener('change', applyFilters);
-			});
-
-			document.getElementById('languagesContainer').addEventListener('change', applyFilters);
-			document.getElementById('usersContainer').addEventListener('change', applyFilters);
 
 			document.querySelectorAll('th[data-sort]').forEach(th => {
 				th.addEventListener('click', () => {
@@ -407,17 +402,24 @@
 		function applyFilters() {
 			const selectedLangEl = document.querySelector('input[name="langSelect"]:checked');
 			const selectedLang = selectedLangEl ? selectedLangEl.value.toLowerCase() : '';
-			const langMode = document.querySelector('input[name="langMode"]:checked').value;
+			const langModeEl = document.querySelector('input[name="langMode"]:checked');
+			const langMode = langModeEl ? langModeEl.value : 'any';
 
 			const selectedUserEl = document.querySelector('input[name="userSelect"]:checked');
 			const selectedUser = selectedUserEl ? selectedUserEl.value : '';
-			const userMode = document.querySelector('input[name="userMode"]:checked').value;
+			const userModeEl = document.querySelector('input[name="userMode"]:checked');
+			const userMode = userModeEl ? userModeEl.value : 'any';
 
-			const editFilter = document.querySelector('input[name="editCountFilter"]:checked').value;
-			const onlyTrans = document.getElementById('translationEditorFilter').checked;
+			const editFilterEl = document.querySelector('input[name="editCountFilter"]:checked');
+			const editFilter = editFilterEl ? editFilterEl.value : 'all';
+			
+			const translationEl = document.getElementById('translationEditorFilter');
+			const onlyTrans = translationEl ? translationEl.checked : false;
 
 			filteredData = rawData.filter(item => {
-				const catsLower = item.cats.map(c => c.toLowerCase());
+				const catsLower = Array.isArray(item.cats) ? item.cats.map(c => c.toLowerCase()) : [];
+				const usersList = Array.isArray(item.users) ? item.users : [];
+				const usersLower = usersList.map(u => u.toLowerCase());
 				
 				if (selectedLang) {
 					if (langMode === 'only') {
@@ -430,14 +432,13 @@
 				if (selectedUser) {
 					if (selectedUser === IP_OR_TEMP_KEY) {
 						if (userMode === 'only') {
-							const allAreIpOrTemp = item.users.every(u => isIpOrTempAccount(u));
+							const allAreIpOrTemp = usersList.length > 0 && usersList.every(u => isIpOrTempAccount(u));
 							if (!allAreIpOrTemp) return false;
 						} else {
-							const hasAnyIpOrTemp = item.users.some(u => isIpOrTempAccount(u));
+							const hasAnyIpOrTemp = usersList.some(u => isIpOrTempAccount(u));
 							if (!hasAnyIpOrTemp) return false;
 						}
 					} else {
-						const usersLower = item.users.map(u => u.toLowerCase());
 						if (userMode === 'only') {
 							if (usersLower.length !== 1 || usersLower[0] !== selectedUser) return false;
 						} else {
@@ -468,11 +469,11 @@
 				let valB = b[sortColumn];
 
 				if (sortColumn === 'cats_len') {
-					valA = a.cats.length;
-					valB = b.cats.length;
+					valA = Array.isArray(a.cats) ? a.cats.length : 0;
+					valB = Array.isArray(b.cats) ? b.cats.length : 0;
 				} else if (sortColumn === 'users') {
-					valA = a.users.join(', ');
-					valB = b.users.join(', ');
+					valA = Array.isArray(a.users) ? a.users.join(', ') : '';
+					valB = Array.isArray(b.users) ? b.users.join(', ') : '';
 				}
 
 				let comparison = 0;
@@ -481,7 +482,7 @@
 				} else if (typeof valA === 'boolean' && typeof valB === 'boolean') {
 					comparison = (valA === valB) ? 0 : valA ? -1 : 1;
 				} else {
-					comparison = String(valA).localeCompare(String(valB), 'pl');
+					comparison = String(valA || '').localeCompare(String(valB || ''), 'pl');
 				}
 
 				return sortDirection === 'asc' ? comparison : -comparison;
@@ -499,7 +500,9 @@
 			pageItems.forEach(item => {
 				const tr = document.createElement('tr');
 				const titleEnc = encodeURIComponent(item.title);
-				const usersStr = item.users.join(', ');
+				const usersArr = Array.isArray(item.users) ? item.users : [];
+				const catsArr = Array.isArray(item.cats) ? item.cats : [];
+				const usersStr = usersArr.join(', ');
 				const transBadge = item.is_trans ? '<span class="tag-badge">tak</span>' : 'nie';
 
 				tr.innerHTML = `
@@ -510,7 +513,7 @@
 					<td>${escapeHtml(usersStr)}</td>
 					<td>${item.diff}</td>
 					<td>${transBadge}</td>
-					<td>(${item.cats.length}) ${escapeHtml(item.cats.join(', '))}</td>
+					<td>(${catsArr.length}) ${escapeHtml(catsArr.join(', '))}</td>
 					<td>${item.links}</td>
 				`;
 				tbody.appendChild(tr);
@@ -524,7 +527,8 @@
 		}
 
 		function escapeHtml(str) {
-			return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+			if (!str) return '';
+			return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 		}
 
 		document.getElementById('prevBtn').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
