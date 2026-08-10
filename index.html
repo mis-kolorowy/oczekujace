@@ -87,11 +87,9 @@
 		.radio-group-inline { display: flex; gap: 12px; flex-wrap: wrap; }
 		.radio-label, .checkbox-label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 
-		/* Przewijanie pionowe (góra-dół) z kolumnami */
 		.selection-grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-			gap: 6px 12px;
+			columns: 160px;
+			column-gap: 12px;
 			max-height: 200px;
 			overflow-y: auto;
 			overflow-x: hidden;
@@ -99,6 +97,11 @@
 			padding: 8px;
 			border-radius: 3px;
 			background: var(--grid-bg);
+		}
+
+		.selection-grid .radio-label {
+			break-inside: avoid;
+			margin-bottom: 4px;
 		}
 
 		.counter { margin-bottom: 10px; font-size: 14px; font-weight: bold; }
@@ -297,20 +300,6 @@
 			return ipv4Pattern.test(username) || ipv6Pattern.test(username);
 		}
 
-		function reorderForVerticalColumns(items, columnsCount = 4) {
-			const rows = Math.ceil(items.length / columnsCount);
-			const result = [];
-			for (let r = 0; r < rows; r++) {
-				for (let c = 0; c < columnsCount; c++) {
-					const idx = c * rows + r;
-					if (idx < items.length) {
-						result.push(items[idx]);
-					}
-				}
-			}
-			return result;
-		}
-
 		function populateLanguages() {
 			const container = document.getElementById('languagesContainer');
 			const langsSet = new Set();
@@ -321,16 +310,15 @@
 			});
 
 			const sortedLangs = Array.from(langsSet).sort((a,b) => a.localeCompare(b, 'pl'));
-			const orderedLangs = reorderForVerticalColumns(sortedLangs, 4);
 
 			let html = `
-				<label class="radio-label" style="grid-column: 1 / -1; margin-bottom: 4px;">
+				<label class="radio-label" style="margin-bottom: 6px;">
 					<input type="radio" name="langSelect" value="" checked>
 					<em>-- Wszystkie --</em>
 				</label>
 			`;
 
-			orderedLangs.forEach(lang => {
+			sortedLangs.forEach(lang => {
 				html += `
 					<label class="radio-label">
 						<input type="radio" name="langSelect" value="${escapeHtml(lang.toLowerCase())}">
@@ -360,10 +348,9 @@
 			});
 
 			const sortedUsers = Array.from(namedUsersSet).sort((a,b) => a.localeCompare(b, 'pl'));
-			const orderedUsers = reorderForVerticalColumns(sortedUsers, 4);
 
 			let html = `
-				<label class="radio-label" style="grid-column: 1 / -1; margin-bottom: 2px;">
+				<label class="radio-label" style="margin-bottom: 2px;">
 					<input type="radio" name="userSelect" value="" checked>
 					<em>-- Wszyscy --</em>
 				</label>
@@ -371,14 +358,14 @@
 
 			if (hasIpOrTemp) {
 				html += `
-					<label class="radio-label" style="grid-column: 1 / -1; margin-bottom: 6px;">
+					<label class="radio-label" style="margin-bottom: 6px;">
 						<input type="radio" name="userSelect" value="${IP_OR_TEMP_KEY}">
 						<strong>IP i konta tymczasowe</strong>
 					</label>
 				`;
 			}
 
-			orderedUsers.forEach(u => {
+			sortedUsers.forEach(u => {
 				html += `
 					<label class="radio-label">
 						<input type="radio" name="userSelect" value="${escapeHtml(u.toLowerCase())}">
