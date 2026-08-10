@@ -88,11 +88,13 @@
 		.radio-label, .checkbox-label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 
 		.selection-grid {
-			columns: 160px;
-			column-gap: 12px;
+			display: flex;
+			flex-direction: column;
+			flex-wrap: wrap;
 			max-height: 200px;
-			overflow-y: auto;
-			overflow-x: hidden;
+			overflow-x: auto;
+			overflow-y: hidden;
+			gap: 6px 16px;
 			border: 1px solid var(--grid-border);
 			padding: 8px;
 			border-radius: 3px;
@@ -100,8 +102,8 @@
 		}
 
 		.selection-grid .radio-label {
-			break-inside: avoid;
-			margin-bottom: 4px;
+			width: 160px;
+			white-space: nowrap;
 		}
 
 		.counter { margin-bottom: 10px; font-size: 14px; font-weight: bold; }
