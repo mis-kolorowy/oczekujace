@@ -22,6 +22,13 @@
 			--badge-text: #0369a1;
 			--btn-bg: #ffffff;
 			--btn-text: #202122;
+
+			/* Kolory dla Diffa - Tryb jasny */
+			--diff-added-bg: #ecfcf0;
+			--diff-added-word: #a3f2b5;
+			--diff-deleted-bg: #fce8e6;
+			--diff-deleted-word: #f3b1ad;
+			--diff-context-bg: #f8f9fa;
 		}
 
 		[data-theme="dark"] {
@@ -41,6 +48,13 @@
 			--badge-text: #7dd3fc;
 			--btn-bg: #272d35;
 			--btn-text: #eaecf0;
+
+			/* Kolory dla Diffa - Tryb ciemny */
+			--diff-added-bg: #14351e;
+			--diff-added-word: #1d6935;
+			--diff-deleted-bg: #441c1d;
+			--diff-deleted-word: #822e31;
+			--diff-context-bg: #161b22;
 		}
 
 		body {
@@ -120,7 +134,7 @@
 		button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 		.table-wrapper { overflow-x: auto; }
-		table { width: 100%; border-collapse: collapse; background: var(--table-bg); border: 1px solid var(--border-color); min-width: 600px; }
+		table.main-table { width: 100%; border-collapse: collapse; background: var(--table-bg); border: 1px solid var(--border-color); min-width: 600px; }
 		th, td { border: 1px solid var(--border-color); padding: 8px 10px; text-align: left; font-size: 13px; }
 		th {
 			background-color: var(--th-bg);
@@ -143,13 +157,52 @@
 		th.sort-asc::after { content: '▲'; opacity: 1; }
 		th.sort-desc::after { content: '▼'; opacity: 1; }
 
-		tr:nth-child(even) { background-color: var(--tr-even); }
-		tr:hover { background-color: var(--tr-hover); }
+		tr:nth-child(4n+1) { background-color: var(--table-bg); }
+		tr:nth-child(4n+3) { background-color: var(--tr-even); }
+		tr.main-row:hover { background-color: var(--tr-hover); }
 
 		a { color: var(--link-color); text-decoration: none; }
 		a:hover { text-decoration: underline; }
 		.tag-badge { background: var(--badge-bg); color: var(--badge-text); padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; }
 		#loading { font-size: 16px; color: var(--link-color); font-weight: bold; margin: 20px 0; }
+
+		/* --- STYLE DLA TABELI DIFFA --- */
+		.diff-row {
+			display: none;
+		}
+
+		.diff-row.open {
+			display: table-row;
+		}
+
+		.diff-container {
+			padding: 10px;
+			background: var(--grid-bg);
+			overflow-x: auto;
+		}
+
+		table.diff {
+			width: 100%;
+			border-collapse: collapse;
+			font-family: monospace;
+			font-size: 12px;
+			table-layout: fixed;
+			word-wrap: break-word;
+		}
+
+		table.diff td {
+			padding: 3px 6px;
+			border: none;
+		}
+
+		td.diff-addedline { background-color: var(--diff-added-bg); }
+		td.diff-deletedline { background-color: var(--diff-deleted-bg); }
+		td.diff-context { background-color: var(--diff-context-bg); }
+		td.diff-marker { text-align: right; font-weight: bold; width: 1.5em; user-select: none; }
+		.diffchange { font-weight: bold; border-radius: 2px; }
+		td.diff-addedline .diffchange { background-color: var(--diff-added-word); }
+		td.diff-deletedline .diffchange { background-color: var(--diff-deleted-word); }
+		.diff-lineno { font-weight: bold; background-color: var(--th-bg); padding: 4px; }
 	</style>
 </head>
 <body>
@@ -161,10 +214,16 @@
 
 	<div class="filter-panel">
 		<div class="filter-group">
-			<label class="checkbox-label">
-				<input type="checkbox" id="translationEditorFilter">
-				<strong>Tylko edytor tłumaczeń</strong>
-			</label>
+			<div class="radio-group-inline">
+				<label class="checkbox-label">
+					<input type="checkbox" id="translationEditorFilter">
+					<strong>Tylko edytor tłumaczeń</strong>
+				</label>
+				<label class="checkbox-label" style="margin-left: 15px;">
+					<input type="checkbox" id="showDiffFilter">
+					<strong>Pokaż porównanie wersji (diff) między wersją przejrzaną i ostatnią</strong>
+				</label>
+			</div>
 		</div>
 
 		<div class="filter-group">
@@ -220,7 +279,7 @@
 	</div>
 
 	<div class="table-wrapper">
-		<table>
+		<table class="main-table">
 			<thead>
 				<tr>
 					<th data-sort="title">Hasło</th>
@@ -382,7 +441,11 @@
 		function attachEventListeners() {
 			document.querySelector('.filter-panel').addEventListener('change', (e) => {
 				if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
-					applyFilters();
+					if (e.target.id === 'showDiffFilter') {
+						renderTable();
+					} else {
+						applyFilters();
+					}
 				}
 			});
 
@@ -501,12 +564,16 @@
 			const tbody = document.getElementById('tableBody');
 			tbody.innerHTML = '';
 
+			const showDiff = document.getElementById('showDiffFilter').checked;
+
 			const totalPages = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
 			const start = (currentPage - 1) * PAGE_SIZE;
 			const pageItems = filteredData.slice(start, start + PAGE_SIZE);
 
-			pageItems.forEach(item => {
+			pageItems.forEach((item) => {
 				const tr = document.createElement('tr');
+				tr.className = 'main-row';
+				
 				const titleEnc = encodeURIComponent(item.title);
 				const usersArr = Array.isArray(item.users) ? item.users : [];
 				const catsArr = Array.isArray(item.cats) ? item.cats : [];
@@ -525,6 +592,22 @@
 					<td>${item.links}</td>
 				`;
 				tbody.appendChild(tr);
+
+				if (item.diff_html) {
+					const diffTr = document.createElement('tr');
+					diffTr.className = `diff-row ${showDiff ? 'open' : ''}`;
+
+					diffTr.innerHTML = `
+						<td colspan="8">
+							<div class="diff-container">
+								<table class="diff">
+									${item.diff_html}
+								</table>
+							</div>
+						</td>
+					`;
+					tbody.appendChild(diffTr);
+				}
 			});
 
 			document.getElementById('visibleCount').textContent = filteredData.length;
