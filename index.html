@@ -179,10 +179,50 @@
 			display: table-row;
 		}
 
+		.diff-flex-wrapper {
+			display: flex;
+			gap: 15px;
+			align-items: flex-start;
+		}
+
 		.diff-container {
 			padding: 10px;
 			background: var(--grid-bg);
 			overflow-x: auto;
+			flex-grow: 1;
+		}
+
+		.review-action-container {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			padding: 10px;
+			min-width: 180px;
+		}
+
+		.review-btn {
+			display: inline-block;
+			padding: 14px 20px;
+			background-color: #36c;
+			color: #ffffff !important;
+			font-weight: bold;
+			font-size: 15px;
+			text-align: center;
+			text-decoration: none;
+			border-radius: 6px;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+			transition: background-color 0.2s, transform 0.1s;
+		}
+
+		.review-btn:hover {
+			background-color: #447ff5;
+			text-decoration: none;
+			transform: translateY(-1px);
+		}
+
+		.review-btn:active {
+			transform: translateY(0);
 		}
 
 		table.diff {
@@ -596,17 +636,26 @@
 					<td>${item.links}</td>
 				`;
 				tbody.appendChild(tr);
-
+				
 				if (item.diff_html) {
 					const diffTr = document.createElement('tr');
 					diffTr.className = `diff-row ${showDiff ? 'open' : ''}`;
 
+					const reviewUrl = `https://pl.wiktionary.org/w/index.php?title=Specjalna:Oznaczenie_wersji&target=${titleEnc}&oldid=${item.oldid}&diff=${item.revid}`;
+
 					diffTr.innerHTML = `
 						<td colspan="8">
-							<div class="diff-container">
-								<table class="diff">
-									${item.diff_html}
-								</table>
+							<div class="diff-flex-wrapper">
+								<div class="diff-container">
+									<table class="diff">
+										${item.diff_html}
+									</table>
+								</div>
+								<div class="review-action-container">
+									<a href="${reviewUrl}" target="_blank" class="review-btn">
+										Otwórz diff w nowej karcie
+									</a>
+								</div>
 							</div>
 						</td>
 					`;
