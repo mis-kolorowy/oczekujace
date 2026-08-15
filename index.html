@@ -641,7 +641,7 @@
 					const diffTr = document.createElement('tr');
 					diffTr.className = `diff-row ${showDiff ? 'open' : ''}`;
 
-					const reviewUrl = `https://pl.wiktionary.org/w/index.php?title=Specjalna:Oznaczenie_wersji&target=${titleEnc}&oldid=${item.oldid}&diff=${item.revid}`;
+					const reviewUrl = `https://pl.wiktionary.org/w/index.php?title=${titleEnc}&oldid=${item.oldid}&diff=${item.revid}`;
 
 					diffTr.innerHTML = `
 						<td colspan="8">
