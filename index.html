@@ -247,6 +247,20 @@
 		td.diff-addedline .diffchange { background-color: var(--diff-added-word); }
 		td.diff-deletedline .diffchange { background-color: var(--diff-deleted-word); }
 		.diff-lineno { font-weight: bold; background-color: var(--th-bg); padding: 4px; }
+
+		table.diff del,
+		table.diff ins {
+			text-decoration: none;
+			color: inherit;
+		}
+
+		table.diff del {
+			background-color: var(--diff-deleted-word);
+		}
+
+		table.diff ins {
+			background-color: var(--diff-added-word);
+		}
 	</style>
 </head>
 <body>
