@@ -187,7 +187,7 @@
 
 		.diff-container {
 			padding: 10px;
-			background: var(--grid-bg);
+			background: var(--diff-context-bg);
 			overflow-x: auto;
 			flex-grow: 1;
 		}
@@ -232,16 +232,18 @@
 			font-size: 12px;
 			table-layout: fixed;
 			word-wrap: break-word;
+			background-color: var(--diff-context-bg);
 		}
 
 		table.diff td {
 			padding: 3px 6px;
 			border: none;
+			background-color: var(--diff-context-bg);
 		}
 
-		td.diff-addedline { background-color: var(--diff-added-bg); }
-		td.diff-deletedline { background-color: var(--diff-deleted-bg); }
-		td.diff-context { background-color: var(--diff-context-bg); }
+		td.diff-addedline { background-color: var(--diff-added-bg) !important; }
+		td.diff-deletedline { background-color: var(--diff-deleted-bg) !important; }
+
 		td.diff-marker { text-align: right; font-weight: bold; width: 1.5em; user-select: none; }
 		.diffchange { font-weight: bold; border-radius: 2px; }
 		td.diff-addedline .diffchange { background-color: var(--diff-added-word); }
@@ -254,13 +256,8 @@
 			color: inherit;
 		}
 
-		table.diff del {
-			background-color: var(--diff-deleted-word);
-		}
-
-		table.diff ins {
-			background-color: var(--diff-added-word);
-		}
+		table.diff del { background-color: var(--diff-deleted-word); }
+		table.diff ins { background-color: var(--diff-added-word); }
 	</style>
 </head>
 <body>
