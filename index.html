@@ -98,6 +98,23 @@
 		.filter-group { display: flex; flex-direction: column; gap: 6px; }
 		.filter-group label.group-title { font-size: 11px; font-weight: bold; color: var(--title-color); text-transform: uppercase; }
 
+		.section-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.btn-group-sm {
+			display: flex;
+			gap: 6px;
+		}
+
+		.btn-sm {
+			padding: 2px 8px;
+			font-size: 11px;
+			border-radius: 3px;
+		}
+
 		.radio-group-inline { display: flex; gap: 12px; flex-wrap: wrap; }
 		.radio-label, .checkbox-label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 
@@ -319,7 +336,13 @@
 				</label>
 			</div>
 
-			<label class="group-title">Wybierz język</label>
+			<div class="section-header">
+				<label class="group-title">Wybierz język</label>
+				<div class="btn-group-sm">
+					<button type="button" class="btn-sm" id="selectAllLangsBtn">Zaznacz wszystkie</button>
+					<button type="button" class="btn-sm" id="deselectAllLangsBtn">Odznacz wszystkie</button>
+				</div>
+			</div>
 			<div class="selection-grid" id="languagesContainer"></div>
 		</div>
 
@@ -334,7 +357,13 @@
 				</label>
 			</div>
 
-			<label class="group-title">Wybierz edytora</label>
+			<div class="section-header">
+				<label class="group-title">Wybierz edytora</label>
+				<div class="btn-group-sm">
+					<button type="button" class="btn-sm" id="selectAllUsersBtn">Zaznacz wszystkie</button>
+					<button type="button" class="btn-sm" id="deselectAllUsersBtn">Odznacz wszystkie</button>
+				</div>
+			</div>
 			<div class="selection-grid" id="usersContainer"></div>
 		</div>
 	</div>
@@ -439,13 +468,7 @@
 
 			const sortedLangs = Array.from(langsSet).sort((a,b) => a.localeCompare(b, 'pl'));
 
-			let html = `
-				<label class="checkbox-label" style="margin-bottom: 6px;">
-					<input type="checkbox" class="lang-checkbox-all" value="" checked>
-					<em>-- Wszystkie --</em>
-				</label>
-			`;
-
+			let html = '';
 			sortedLangs.forEach(lang => {
 				html += `
 					<label class="checkbox-label">
@@ -484,12 +507,7 @@
 
 			const sortedUsers = Object.keys(userPageCounts).sort((a,b) => a.localeCompare(b, 'pl'));
 
-			let html = `
-				<label class="checkbox-label" style="margin-bottom: 2px;">
-					<input type="checkbox" class="user-checkbox-all" value="" checked>
-					<em>-- Wszyscy --</em>
-				</label>
-			`;
+			let html = '';
 
 			if (ipPageCount > 0) {
 				html += `
@@ -504,7 +522,7 @@
 				html += `
 					<label class="checkbox-label">
 						<input type="checkbox" name="userSelect" value="${escapeHtml(u.toLowerCase())}">
-						${escapeHtml(u)} (${userPageCounts[u]})
+						${escapeHtml(u)} (${userPageCounts[u]})
 					</label>
 				`;
 			});
@@ -514,26 +532,6 @@
 
 		function attachEventListeners() {
 			document.querySelector('.filter-panel').addEventListener('change', (e) => {
-				if (e.target.matches('.lang-checkbox-all')) {
-					if (e.target.checked) {
-						document.querySelectorAll('input[name="langSelect"]').forEach(cb => cb.checked = false);
-					}
-				} else if (e.target.matches('input[name="langSelect"]')) {
-					const allCb = document.querySelector('.lang-checkbox-all');
-					const anyChecked = document.querySelectorAll('input[name="langSelect"]:checked').length > 0;
-					if (allCb) allCb.checked = !anyChecked;
-				}
-
-				if (e.target.matches('.user-checkbox-all')) {
-					if (e.target.checked) {
-						document.querySelectorAll('input[name="userSelect"]').forEach(cb => cb.checked = false);
-					}
-				} else if (e.target.matches('input[name="userSelect"]')) {
-					const allCb = document.querySelector('.user-checkbox-all');
-					const anyChecked = document.querySelectorAll('input[name="userSelect"]:checked').length > 0;
-					if (allCb) allCb.checked = !anyChecked;
-				}
-
 				if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
 					if (e.target.id === 'showDiffFilter') {
 						renderTable();
@@ -541,6 +539,26 @@
 						applyFilters();
 					}
 				}
+			});
+
+			// Obsługa przycisków zbiorczych dla Języków
+			document.getElementById('selectAllLangsBtn').addEventListener('click', () => {
+				document.querySelectorAll('input[name="langSelect"]').forEach(cb => cb.checked = true);
+				applyFilters();
+			});
+			document.getElementById('deselectAllLangsBtn').addEventListener('click', () => {
+				document.querySelectorAll('input[name="langSelect"]').forEach(cb => cb.checked = false);
+				applyFilters();
+			});
+
+			// Obsługa przycisków zbiorczych dla Edytorów
+			document.getElementById('selectAllUsersBtn').addEventListener('click', () => {
+				document.querySelectorAll('input[name="userSelect"]').forEach(cb => cb.checked = true);
+				applyFilters();
+			});
+			document.getElementById('deselectAllUsersBtn').addEventListener('click', () => {
+				document.querySelectorAll('input[name="userSelect"]').forEach(cb => cb.checked = false);
+				applyFilters();
 			});
 
 			document.querySelectorAll('th[data-sort]').forEach(th => {
