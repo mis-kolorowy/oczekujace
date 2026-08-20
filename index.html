@@ -115,8 +115,9 @@
 			background: var(--grid-bg);
 		}
 
-		.selection-grid .radio-label {
-			width: 160px;
+		.selection-grid .radio-label,
+		.selection-grid .checkbox-label {
+			width: 200px;
 			white-space: nowrap;
 		}
 
@@ -162,7 +163,7 @@
 		tr.main-row:hover { background-color: var(--tr-hover); }
 
 		.main-table td:first-child {
-   			font-size: 15px;
+			font-size: 15px;
 		}
 
 		a { color: var(--link-color); text-decoration: none; }
@@ -269,12 +270,23 @@
 
 	<div class="filter-panel">
 		<div class="filter-group">
+			<label class="group-title">Edytor tłumaczeń</label>
+			<div class="radio-group-inline">
+				<label class="radio-label">
+					<input type="radio" name="transFilter" value="all" checked> Obojętnie
+				</label>
+				<label class="radio-label">
+					<input type="radio" name="transFilter" value="only"> Tylko edytor tłumaczeń
+				</label>
+				<label class="radio-label">
+					<input type="radio" name="transFilter" value="none"> Bez edytora tłumaczeń
+				</label>
+			</div>
+		</div>
+
+		<div class="filter-group">
 			<div class="radio-group-inline">
 				<label class="checkbox-label">
-					<input type="checkbox" id="translationEditorFilter">
-					<strong>Tylko edytor tłumaczeń</strong>
-				</label>
-				<label class="checkbox-label" style="margin-left: 15px;">
 					<input type="checkbox" id="showDiffFilter">
 					<strong>Pokaż porównanie wersji (diff) między wersją przejrzaną i ostatnią</strong>
 				</label>
@@ -300,10 +312,10 @@
 			<label class="group-title">Tryb języka</label>
 			<div class="radio-group-inline" style="margin-bottom: 6px;">
 				<label class="radio-label">
-					<input type="radio" name="langMode" value="any" checked> Między innymi język
+					<input type="radio" name="langMode" value="any" checked> Między innymi wybrane języki
 				</label>
 				<label class="radio-label">
-					<input type="radio" name="langMode" value="only"> Tylko język
+					<input type="radio" name="langMode" value="only"> Tylko wybrane języki
 				</label>
 			</div>
 
@@ -315,10 +327,10 @@
 			<label class="group-title">Tryb edytora</label>
 			<div class="radio-group-inline" style="margin-bottom: 6px;">
 				<label class="radio-label">
-					<input type="radio" name="userMode" value="any" checked> Między innymi edytor
+					<input type="radio" name="userMode" value="any" checked> Między innymi wybrani edytorzy
 				</label>
 				<label class="radio-label">
-					<input type="radio" name="userMode" value="only"> Tylko edytor
+					<input type="radio" name="userMode" value="only"> Tylko wybrani edytorzy
 				</label>
 			</div>
 
@@ -428,16 +440,16 @@
 			const sortedLangs = Array.from(langsSet).sort((a,b) => a.localeCompare(b, 'pl'));
 
 			let html = `
-				<label class="radio-label" style="margin-bottom: 6px;">
-					<input type="radio" name="langSelect" value="" checked>
+				<label class="checkbox-label" style="margin-bottom: 6px;">
+					<input type="checkbox" class="lang-checkbox-all" value="" checked>
 					<em>-- Wszystkie --</em>
 				</label>
 			`;
 
 			sortedLangs.forEach(lang => {
 				html += `
-					<label class="radio-label">
-						<input type="radio" name="langSelect" value="${escapeHtml(lang.toLowerCase())}">
+					<label class="checkbox-label">
+						<input type="checkbox" name="langSelect" value="${escapeHtml(lang.toLowerCase())}">
 						${escapeHtml(lang)}
 					</label>
 				`;
@@ -448,44 +460,51 @@
 
 		function populateUsers() {
 			const container = document.getElementById('usersContainer');
-			const namedUsersSet = new Set();
-			let hasIpOrTemp = false;
+			const userPageCounts = {};
+			let ipPageCount = 0;
 
 			rawData.forEach(item => {
 				if (Array.isArray(item.users)) {
-					item.users.forEach(u => {
+					const uniqueUsersInItem = new Set(item.users);
+					let itemHasIpOrTemp = false;
+
+					uniqueUsersInItem.forEach(u => {
 						if (isIpOrTempAccount(u)) {
-							hasIpOrTemp = true;
+							itemHasIpOrTemp = true;
 						} else {
-							namedUsersSet.add(u);
+							userPageCounts[u] = (userPageCounts[u] || 0) + 1;
 						}
 					});
+
+					if (itemHasIpOrTemp) {
+						ipPageCount++;
+					}
 				}
 			});
 
-			const sortedUsers = Array.from(namedUsersSet).sort((a,b) => a.localeCompare(b, 'pl'));
+			const sortedUsers = Object.keys(userPageCounts).sort((a,b) => a.localeCompare(b, 'pl'));
 
 			let html = `
-				<label class="radio-label" style="margin-bottom: 2px;">
-					<input type="radio" name="userSelect" value="" checked>
+				<label class="checkbox-label" style="margin-bottom: 2px;">
+					<input type="checkbox" class="user-checkbox-all" value="" checked>
 					<em>-- Wszyscy --</em>
 				</label>
 			`;
 
-			if (hasIpOrTemp) {
+			if (ipPageCount > 0) {
 				html += `
-					<label class="radio-label" style="margin-bottom: 6px;">
-						<input type="radio" name="userSelect" value="${IP_OR_TEMP_KEY}">
-						<strong>IP i konta tymczasowe</strong>
+					<label class="checkbox-label" style="margin-bottom: 6px;">
+						<input type="checkbox" name="userSelect" value="${IP_OR_TEMP_KEY}">
+						<strong>IP i konta tymczasowe (${ipPageCount})</strong>
 					</label>
 				`;
 			}
 
 			sortedUsers.forEach(u => {
 				html += `
-					<label class="radio-label">
-						<input type="radio" name="userSelect" value="${escapeHtml(u.toLowerCase())}">
-						${escapeHtml(u)}
+					<label class="checkbox-label">
+						<input type="checkbox" name="userSelect" value="${escapeHtml(u.toLowerCase())}">
+						${escapeHtml(u)} (${userPageCounts[u]})
 					</label>
 				`;
 			});
@@ -495,6 +514,26 @@
 
 		function attachEventListeners() {
 			document.querySelector('.filter-panel').addEventListener('change', (e) => {
+				if (e.target.matches('.lang-checkbox-all')) {
+					if (e.target.checked) {
+						document.querySelectorAll('input[name="langSelect"]').forEach(cb => cb.checked = false);
+					}
+				} else if (e.target.matches('input[name="langSelect"]')) {
+					const allCb = document.querySelector('.lang-checkbox-all');
+					const anyChecked = document.querySelectorAll('input[name="langSelect"]:checked').length > 0;
+					if (allCb) allCb.checked = !anyChecked;
+				}
+
+				if (e.target.matches('.user-checkbox-all')) {
+					if (e.target.checked) {
+						document.querySelectorAll('input[name="userSelect"]').forEach(cb => cb.checked = false);
+					}
+				} else if (e.target.matches('input[name="userSelect"]')) {
+					const allCb = document.querySelector('.user-checkbox-all');
+					const anyChecked = document.querySelectorAll('input[name="userSelect"]:checked').length > 0;
+					if (allCb) allCb.checked = !anyChecked;
+				}
+
 				if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
 					if (e.target.id === 'showDiffFilter') {
 						renderTable();
@@ -526,56 +565,57 @@
 		}
 
 		function applyFilters() {
-			const selectedLangEl = document.querySelector('input[name="langSelect"]:checked');
-			const selectedLang = selectedLangEl ? selectedLangEl.value.toLowerCase() : '';
+			const selectedLangs = Array.from(document.querySelectorAll('input[name="langSelect"]:checked')).map(cb => cb.value.toLowerCase());
 			const langModeEl = document.querySelector('input[name="langMode"]:checked');
 			const langMode = langModeEl ? langModeEl.value : 'any';
 
-			const selectedUserEl = document.querySelector('input[name="userSelect"]:checked');
-			const selectedUser = selectedUserEl ? selectedUserEl.value : '';
+			const selectedUsers = Array.from(document.querySelectorAll('input[name="userSelect"]:checked')).map(cb => cb.value);
 			const userModeEl = document.querySelector('input[name="userMode"]:checked');
 			const userMode = userModeEl ? userModeEl.value : 'any';
 
 			const editFilterEl = document.querySelector('input[name="editCountFilter"]:checked');
 			const editFilter = editFilterEl ? editFilterEl.value : 'all';
 			
-			const translationEl = document.getElementById('translationEditorFilter');
-			const onlyTrans = translationEl ? translationEl.checked : false;
+			const transFilterEl = document.querySelector('input[name="transFilter"]:checked');
+			const transFilter = transFilterEl ? transFilterEl.value : 'all';
 
 			filteredData = rawData.filter(item => {
 				const catsLower = Array.isArray(item.cats) ? item.cats.map(c => c.toLowerCase()) : [];
 				const usersList = Array.isArray(item.users) ? item.users : [];
 				const usersLower = usersList.map(u => u.toLowerCase());
 				
-				if (selectedLang) {
+				if (selectedLangs.length > 0) {
 					if (langMode === 'only') {
-						if (catsLower.length !== 1 || catsLower[0] !== selectedLang) return false;
+						if (catsLower.length === 0 || !catsLower.every(c => selectedLangs.includes(c))) return false;
 					} else {
-						if (!catsLower.includes(selectedLang)) return false;
+						if (!selectedLangs.some(l => catsLower.includes(l))) return false;
 					}
 				}
 
-				if (selectedUser) {
-					if (selectedUser === IP_OR_TEMP_KEY) {
-						if (userMode === 'only') {
-							const allAreIpOrTemp = usersList.length > 0 && usersList.every(u => isIpOrTempAccount(u));
-							if (!allAreIpOrTemp) return false;
-						} else {
-							const hasAnyIpOrTemp = usersList.some(u => isIpOrTempAccount(u));
-							if (!hasAnyIpOrTemp) return false;
-						}
+				if (selectedUsers.length > 0) {
+					const hasIpKey = selectedUsers.includes(IP_OR_TEMP_KEY);
+					const namedSelected = selectedUsers.filter(u => u !== IP_OR_TEMP_KEY);
+
+					if (userMode === 'only') {
+						const allMatch = usersList.length > 0 && usersList.every(u => {
+							if (isIpOrTempAccount(u)) return hasIpKey;
+							return namedSelected.includes(u.toLowerCase());
+						});
+						if (!allMatch) return false;
 					} else {
-						if (userMode === 'only') {
-							if (usersLower.length !== 1 || usersLower[0] !== selectedUser) return false;
-						} else {
-							if (!usersLower.includes(selectedUser)) return false;
-						}
+						const matchFound = usersList.some(u => {
+							if (isIpOrTempAccount(u)) return hasIpKey;
+							return namedSelected.includes(u.toLowerCase());
+						});
+						if (!matchFound) return false;
 					}
 				}
 
 				if (editFilter === '1' && item.edits !== 1) return false;
 				if (editFilter === '2+' && item.edits < 2) return false;
-				if (onlyTrans && !item.is_trans) return false;
+
+				if (transFilter === 'only' && !item.is_trans) return false;
+				if (transFilter === 'none' && item.is_trans) return false;
 
 				return true;
 			});
