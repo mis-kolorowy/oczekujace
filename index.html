@@ -138,7 +138,30 @@
 			white-space: nowrap;
 		}
 
-		.counter { margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+		.table-toolbar {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.counter { font-size: 14px; font-weight: bold; }
+
+		button.btn-large {
+			padding: 8px 16px;
+			font-size: 14px;
+			font-weight: bold;
+			background-color: #36c;
+			color: #ffffff;
+			border: 1px solid #36c;
+			transition: background-color 0.2s, border-color 0.2s;
+		}
+
+		button.btn-large:hover {
+			background-color: #447ff5;
+			border-color: #447ff5;
+		}
+
 		.pagination { margin: 15px 0; display: flex; gap: 10px; align-items: center; }
 
 		button {
@@ -370,8 +393,11 @@
 
 	<div id="loading">Wczytywanie bazy danych...</div>
 
-	<div class="counter">
-		Znaleziono: <span id="visibleCount">0</span> / <span id="totalCount">0</span>
+	<div class="table-toolbar">
+		<div class="counter">
+			Znaleziono: <span id="visibleCount">0</span> / <span id="totalCount">0</span>
+		</div>
+		<button id="randomSortBtn" class="btn-large">🔀 Sortuj losowo</button>
 	</div>
 
 	<div class="table-wrapper">
@@ -580,6 +606,9 @@
 					renderTable();
 				});
 			});
+
+			// Podpięcie przycisku "Sortuj losowo"
+			document.getElementById('randomSortBtn').addEventListener('click', shuffleData);
 		}
 
 		function applyFilters() {
@@ -671,6 +700,22 @@
 
 				return sortDirection === 'asc' ? comparison : -comparison;
 			});
+		}
+
+		function shuffleData() {
+			sortColumn = null;
+			document.querySelectorAll('th[data-sort]').forEach(h => {
+				h.classList.remove('sort-asc', 'sort-desc');
+			});
+
+			// Algorytm Fisher-Yates
+			for (let i = filteredData.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[filteredData[i], filteredData[j]] = [filteredData[j], filteredData[i]];
+			}
+
+			currentPage = 1;
+			renderTable();
 		}
 
 		function renderTable() {
