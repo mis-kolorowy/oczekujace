@@ -98,19 +98,15 @@
 		.filter-group { display: flex; flex-direction: column; gap: 6px; }
 		.filter-group label.group-title { font-size: 11px; font-weight: bold; color: var(--title-color); text-transform: uppercase; }
 
-		.section-header {
+		.section-subheader {
 			display: flex;
-			justify-content: space-between;
-			align-items: center;
-		}
-
-		.btn-group-sm {
-			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
 			gap: 6px;
 		}
 
 		.btn-sm {
-			padding: 2px 8px;
+			padding: 3px 8px;
 			font-size: 11px;
 			border-radius: 3px;
 		}
@@ -300,7 +296,7 @@
 		table.diff del { background-color: var(--diff-deleted-word); }
 		table.diff ins { background-color: var(--diff-added-word); }
 	</style>
-<script data-goatcounter="https://misiakwielokolorowy.goatcounter.com/count"
+<script data-goatcounter="https://..."
         async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
@@ -361,12 +357,9 @@
 				</label>
 			</div>
 
-			<div class="section-header">
+			<div class="section-subheader">
 				<label class="group-title">Wybierz język</label>
-				<div class="btn-group-sm">
-					<button type="button" class="btn-sm" id="selectAllLangsBtn">Zaznacz wszystkie</button>
-					<button type="button" class="btn-sm" id="deselectAllLangsBtn">Odznacz wszystkie</button>
-				</div>
+				<button type="button" class="btn-sm" id="toggleAllLangsBtn">Zaznacz/Odznacz wszystko</button>
 			</div>
 			<div class="selection-grid" id="languagesContainer"></div>
 		</div>
@@ -382,12 +375,9 @@
 				</label>
 			</div>
 
-			<div class="section-header">
+			<div class="section-subheader">
 				<label class="group-title">Wybierz edytora</label>
-				<div class="btn-group-sm">
-					<button type="button" class="btn-sm" id="selectAllUsersBtn">Zaznacz wszystkie</button>
-					<button type="button" class="btn-sm" id="deselectAllUsersBtn">Odznacz wszystkie</button>
-				</div>
+				<button type="button" class="btn-sm" id="toggleAllUsersBtn">Zaznacz/Odznacz wszystko</button>
 			</div>
 			<div class="selection-grid" id="usersContainer"></div>
 		</div>
@@ -558,6 +548,17 @@
 			container.innerHTML = html;
 		}
 
+		function toggleAllCheckboxes(selector) {
+			const checkboxes = Array.from(document.querySelectorAll(selector));
+			if (checkboxes.length === 0) return;
+
+			const allChecked = checkboxes.every(cb => cb.checked);
+			checkboxes.forEach(cb => {
+				cb.checked = !allChecked;
+			});
+			applyFilters();
+		}
+
 		function attachEventListeners() {
 			document.querySelector('.filter-panel').addEventListener('change', (e) => {
 				if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
@@ -569,24 +570,12 @@
 				}
 			});
 
-			// Obsługa przycisków zbiorczych dla Języków
-			document.getElementById('selectAllLangsBtn').addEventListener('click', () => {
-				document.querySelectorAll('input[name="langSelect"]').forEach(cb => cb.checked = true);
-				applyFilters();
+			// Obsługa przełącznika zbiorczego dla Języków i Edytorów
+			document.getElementById('toggleAllLangsBtn').addEventListener('click', () => {
+				toggleAllCheckboxes('input[name="langSelect"]');
 			});
-			document.getElementById('deselectAllLangsBtn').addEventListener('click', () => {
-				document.querySelectorAll('input[name="langSelect"]').forEach(cb => cb.checked = false);
-				applyFilters();
-			});
-
-			// Obsługa przycisków zbiorczych dla Edytorów
-			document.getElementById('selectAllUsersBtn').addEventListener('click', () => {
-				document.querySelectorAll('input[name="userSelect"]').forEach(cb => cb.checked = true);
-				applyFilters();
-			});
-			document.getElementById('deselectAllUsersBtn').addEventListener('click', () => {
-				document.querySelectorAll('input[name="userSelect"]').forEach(cb => cb.checked = false);
-				applyFilters();
+			document.getElementById('toggleAllUsersBtn').addEventListener('click', () => {
+				toggleAllCheckboxes('input[name="userSelect"]');
 			});
 
 			document.querySelectorAll('th[data-sort]').forEach(th => {
